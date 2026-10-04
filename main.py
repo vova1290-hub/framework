@@ -1,26 +1,28 @@
 """Точка запуска системы учёта коммерческих предложений."""
 
-from datetime import date
 from pathlib import Path
 
-from proposals import (
-    STATUS_APPROVED,
-    STATUS_CANCELLED,
-    STATUS_PENDING,
-    Proposal,
+from models import Client, Proposal
+from models.clients import add_client, find_client_by_name
+from models.proposals import (
     add_proposal,
-    calculate_expiration_date,
-    calculate_final_amount,
     calculate_statistics,
     change_proposal_status,
     find_proposals,
     iter_proposals_by_status,
     sort_proposals_by_amount,
 )
-from storage import load_proposals, save_proposals
+from storage import (
+    load_clients,
+    load_proposals,
+    save_clients,
+    save_proposals,
+)
 from utils import input_date, input_float, input_int, input_non_empty
 
-DATA_FILE = str(Path(__file__).parent / "data" / "proposals.json")
+DATA_DIR = Path(__file__).parent / "data"
+CLIENTS_FILE = str(DATA_DIR / "clients.json")
+PROPOSALS_FILE = str(DATA_DIR / "proposals.json")
 
 
 def show_proposals(proposals: list[Proposal]) -> None:
@@ -30,22 +32,7 @@ def show_proposals(proposals: list[Proposal]) -> None:
         return
 
     for proposal in proposals:
-        created_date = date.fromisoformat(str(proposal["created_date"]))
-        expiration_date = calculate_expiration_date(
-            created_date,
-            int(proposal["validity_days"]),
-        )
-        final_amount = calculate_final_amount(
-            float(proposal["amount"]),
-            float(proposal["discount_percent"]),
-        )
-        print(
-            f'{proposal["id"]}. {proposal["number"]} | '
-            f'{proposal["client"]} | '
-            f"{final_amount:.2f} руб. | "
-            f"до {expiration_date:%d.%m.%Y} | "
-            f'{proposal["status"]}'
-        )
+        print(proposal)
 
 
 def show_statistics(proposals: list[Proposal]) -> None:
@@ -64,6 +51,7 @@ def show_statistics(proposals: list[Proposal]) -> None:
 
 def create_proposal_from_input(
     proposals: list[Proposal],
+    clients: list[Client],
 ) -> Proposal:
     """Запросить данные и создать коммерческое предложение."""
     proposal_number = input_non_empty("Номер предложения: ")
@@ -72,10 +60,15 @@ def create_proposal_from_input(
     discount_percent = input_float("Скидка, %: ")
     created_date = input_date("Дата создания (ДД.ММ.ГГГГ): ")
     validity_days = input_int("Срок действия в днях: ")
+
+    client = find_client_by_name(clients, client_name)
+    if client is None:
+        client = add_client(clients, client_name)
+
     return add_proposal(
         proposals,
         proposal_number,
-        client_name,
+        client,
         amount,
         discount_percent,
         created_date,
@@ -100,9 +93,9 @@ def print_menu() -> None:
 def select_status() -> str:
     """Запросить у пользователя один из доступных статусов."""
     statuses = {
-        1: STATUS_PENDING,
-        2: STATUS_APPROVED,
-        3: STATUS_CANCELLED,
+        1: Proposal.STATUS_PENDING,
+        2: Proposal.STATUS_APPROVED,
+        3: Proposal.STATUS_CANCELLED,
     }
     print("1. Ожидает согласования")
     print("2. Согласовано")
@@ -113,12 +106,23 @@ def select_status() -> str:
     return statuses[status_number]
 
 
+def save_data(
+    clients: list[Client],
+    proposals: list[Proposal],
+) -> None:
+    """Сохранить клиентов и коммерческие предложения."""
+    save_clients(CLIENTS_FILE, clients)
+    save_proposals(PROPOSALS_FILE, proposals)
+
+
 def main() -> None:
     """Загрузить данные и запустить цикл меню приложения."""
     try:
-        proposals = load_proposals(DATA_FILE)
+        clients = load_clients(CLIENTS_FILE)
+        proposals = load_proposals(PROPOSALS_FILE, clients)
     except ValueError as error:
         print(f"Ошибка загрузки: {error}")
+        clients = []
         proposals = []
 
     while True:
@@ -132,26 +136,29 @@ def main() -> None:
                 query = input_non_empty("Номер или клиент: ")
                 show_proposals(find_proposals(proposals, query))
             elif choice == "3":
-                proposal = create_proposal_from_input(proposals)
-                save_proposals(DATA_FILE, proposals)
-                print(f'Предложение {proposal["number"]} добавлено.')
+                proposal = create_proposal_from_input(
+                    proposals,
+                    clients,
+                )
+                save_data(clients, proposals)
+                print(f"Предложение {proposal.number} добавлено.")
             elif choice == "4":
                 proposal_id = input_int("ID предложения: ")
                 change_proposal_status(
                     proposals,
                     proposal_id,
-                    STATUS_APPROVED,
+                    Proposal.STATUS_APPROVED,
                 )
-                save_proposals(DATA_FILE, proposals)
+                save_data(clients, proposals)
                 print("Предложение согласовано.")
             elif choice == "5":
                 proposal_id = input_int("ID предложения: ")
                 change_proposal_status(
                     proposals,
                     proposal_id,
-                    STATUS_CANCELLED,
+                    Proposal.STATUS_CANCELLED,
                 )
-                save_proposals(DATA_FILE, proposals)
+                save_data(clients, proposals)
                 print("Предложение отменено.")
             elif choice == "6":
                 sorted_proposals = sort_proposals_by_amount(
@@ -171,7 +178,7 @@ def main() -> None:
             elif choice == "8":
                 show_statistics(proposals)
             elif choice == "0":
-                save_proposals(DATA_FILE, proposals)
+                save_data(clients, proposals)
                 print("Данные сохранены. Работа завершена.")
                 break
             else:

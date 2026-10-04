@@ -2,7 +2,7 @@
   {
     "id": 1,
     "number": "КП-001",
-    "client": "ООО Альфа",
+    "client_id": 1,
     "amount": 150000.0,
     "discount_percent": 10.0,
     "created_date": "2026-09-27",
@@ -12,7 +12,7 @@
   {
     "id": 2,
     "number": "КП-002",
-    "client": "ООО Вектор",
+    "client_id": 2,
     "amount": 280000.0,
     "discount_percent": 5.0,
     "created_date": "2026-09-25",
@@ -22,7 +22,7 @@
   {
     "id": 3,
     "number": "КП-003",
-    "client": "ИП Смирнов",
+    "client_id": 3,
     "amount": 95000.0,
     "discount_percent": 0.0,
     "created_date": "2026-09-20",
