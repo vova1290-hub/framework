@@ -4,6 +4,7 @@ from collections.abc import Iterator
 from datetime import date, timedelta
 
 from .clients import Client
+from .managers import Manager
 
 
 class Proposal:
@@ -23,6 +24,7 @@ class Proposal:
         proposal_id: int,
         number: str,
         client: Client,
+        manager: Manager,
         amount: float,
         discount_percent: float,
         created_date: date,
@@ -33,6 +35,7 @@ class Proposal:
         self.id = proposal_id
         self.number = number
         self.client = client
+        self.manager = manager
         self.amount = amount
         self.discount_percent = discount_percent
         self.created_date = created_date
@@ -69,7 +72,7 @@ class Proposal:
         expiration_date = self.get_expiration_date()
         return (
             f"{self.id}. {self.number} | {self.client.name} | "
-            f"{self.final_amount:.2f} руб. | "
+            f"{self.manager.name} | {self.final_amount:.2f} руб. | "
             f"до {expiration_date:%d.%m.%Y} | {self.status}"
         )
 
@@ -90,6 +93,7 @@ def add_proposal(
     proposals: list[Proposal],
     proposal_number: str,
     client: Client,
+    manager: Manager,
     amount: float,
     discount_percent: float,
     created_date: date,
@@ -119,6 +123,7 @@ def add_proposal(
         proposal_id,
         proposal_number,
         client,
+        manager,
         amount,
         discount_percent,
         created_date,
@@ -132,13 +137,14 @@ def find_proposals(
     proposals: list[Proposal],
     query: str,
 ) -> list[Proposal]:
-    """Найти предложения по номеру или названию клиента."""
+    """Найти предложения по номеру, клиенту или менеджеру."""
     normalized_query = query.strip().casefold()
     return [
         proposal
         for proposal in proposals
         if normalized_query in proposal.number.casefold()
         or normalized_query in proposal.client.name.casefold()
+        or normalized_query in proposal.manager.name.casefold()
     ]
 
 

@@ -5,6 +5,7 @@ from datetime import date
 from pathlib import Path
 
 from models.clients import Client, find_client_by_id
+from models.managers import Manager, find_manager_by_id
 from models.proposals import Proposal
 
 
@@ -64,11 +65,33 @@ def save_clients(filename: str, clients: list[Client]) -> None:
     _write_list(filename, data)
 
 
+def load_managers(filename: str) -> list[Manager]:
+    """Загрузить менеджеров и создать объекты Manager."""
+    managers: list[Manager] = []
+    for item in _read_list(filename):
+        if not isinstance(item, dict):
+            raise ValueError("Некорректная запись менеджера")
+        managers.append(Manager.from_data(item))
+    return managers
+
+
+def save_managers(filename: str, managers: list[Manager]) -> None:
+    """Сохранить менеджеров в JSON-файл."""
+    data: list[object] = []
+    for manager in managers:
+        data.append({
+            "id": manager.id,
+            "name": manager.name,
+        })
+    _write_list(filename, data)
+
+
 def load_proposals(
     filename: str,
     clients: list[Client],
+    managers: list[Manager],
 ) -> list[Proposal]:
-    """Загрузить предложения и связать их с клиентами."""
+    """Загрузить предложения и связать их с клиентами и менеджерами."""
     proposals: list[Proposal] = []
     for item in _read_list(filename):
         if not isinstance(item, dict):
@@ -84,10 +107,21 @@ def load_proposals(
                 f"с id {item['client_id']}"
             )
 
+        manager = find_manager_by_id(
+            managers,
+            int(item["manager_id"]),
+        )
+        if manager is None:
+            raise ValueError(
+                "Для предложения не найден менеджер "
+                f"с id {item['manager_id']}"
+            )
+
         proposal = Proposal(
             int(item["id"]),
             str(item["number"]),
             client,
+            manager,
             float(item["amount"]),
             float(item["discount_percent"]),
             date.fromisoformat(str(item["created_date"])),
@@ -102,13 +136,14 @@ def save_proposals(
     filename: str,
     proposals: list[Proposal],
 ) -> None:
-    """Сохранить предложения, подставив id клиента."""
+    """Сохранить предложения, подставив id клиента и менеджера."""
     data: list[object] = []
     for proposal in proposals:
         data.append({
             "id": proposal.id,
             "number": proposal.number,
             "client_id": proposal.client.id,
+            "manager_id": proposal.manager.id,
             "amount": proposal.amount,
             "discount_percent": proposal.discount_percent,
             "created_date": proposal.created_date.isoformat(),

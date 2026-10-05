@@ -2,8 +2,9 @@
 
 from pathlib import Path
 
-from models import Client, Proposal
+from models import Client, Manager, Proposal
 from models.clients import add_client, find_client_by_name
+from models.managers import add_manager, find_manager_by_name
 from models.proposals import (
     add_proposal,
     calculate_statistics,
@@ -14,14 +15,17 @@ from models.proposals import (
 )
 from storage import (
     load_clients,
+    load_managers,
     load_proposals,
     save_clients,
+    save_managers,
     save_proposals,
 )
 from utils import input_date, input_float, input_int, input_non_empty
 
 DATA_DIR = Path(__file__).parent / "data"
 CLIENTS_FILE = str(DATA_DIR / "clients.json")
+MANAGERS_FILE = str(DATA_DIR / "managers.json")
 PROPOSALS_FILE = str(DATA_DIR / "proposals.json")
 
 
@@ -52,10 +56,12 @@ def show_statistics(proposals: list[Proposal]) -> None:
 def create_proposal_from_input(
     proposals: list[Proposal],
     clients: list[Client],
+    managers: list[Manager],
 ) -> Proposal:
     """Запросить данные и создать коммерческое предложение."""
     proposal_number = input_non_empty("Номер предложения: ")
     client_name = input_non_empty("Название клиента: ")
+    manager_name = input_non_empty("Имя менеджера: ")
     amount = input_float("Исходная сумма: ")
     discount_percent = input_float("Скидка, %: ")
     created_date = input_date("Дата создания (ДД.ММ.ГГГГ): ")
@@ -65,10 +71,15 @@ def create_proposal_from_input(
     if client is None:
         client = add_client(clients, client_name)
 
+    manager = find_manager_by_name(managers, manager_name)
+    if manager is None:
+        manager = add_manager(managers, manager_name)
+
     return add_proposal(
         proposals,
         proposal_number,
         client,
+        manager,
         amount,
         discount_percent,
         created_date,
@@ -108,10 +119,12 @@ def select_status() -> str:
 
 def save_data(
     clients: list[Client],
+    managers: list[Manager],
     proposals: list[Proposal],
 ) -> None:
-    """Сохранить клиентов и коммерческие предложения."""
+    """Сохранить клиентов, менеджеров и предложения."""
     save_clients(CLIENTS_FILE, clients)
+    save_managers(MANAGERS_FILE, managers)
     save_proposals(PROPOSALS_FILE, proposals)
 
 
@@ -119,10 +132,12 @@ def main() -> None:
     """Загрузить данные и запустить цикл меню приложения."""
     try:
         clients = load_clients(CLIENTS_FILE)
-        proposals = load_proposals(PROPOSALS_FILE, clients)
+        managers = load_managers(MANAGERS_FILE)
+        proposals = load_proposals(PROPOSALS_FILE, clients, managers)
     except ValueError as error:
         print(f"Ошибка загрузки: {error}")
         clients = []
+        managers = []
         proposals = []
 
     while True:
@@ -133,14 +148,15 @@ def main() -> None:
             if choice == "1":
                 show_proposals(proposals)
             elif choice == "2":
-                query = input_non_empty("Номер или клиент: ")
+                query = input_non_empty("Номер, клиент или менеджер: ")
                 show_proposals(find_proposals(proposals, query))
             elif choice == "3":
                 proposal = create_proposal_from_input(
                     proposals,
                     clients,
+                    managers,
                 )
-                save_data(clients, proposals)
+                save_data(clients, managers, proposals)
                 print(f"Предложение {proposal.number} добавлено.")
             elif choice == "4":
                 proposal_id = input_int("ID предложения: ")
@@ -149,7 +165,7 @@ def main() -> None:
                     proposal_id,
                     Proposal.STATUS_APPROVED,
                 )
-                save_data(clients, proposals)
+                save_data(clients, managers, proposals)
                 print("Предложение согласовано.")
             elif choice == "5":
                 proposal_id = input_int("ID предложения: ")
@@ -158,7 +174,7 @@ def main() -> None:
                     proposal_id,
                     Proposal.STATUS_CANCELLED,
                 )
-                save_data(clients, proposals)
+                save_data(clients, managers, proposals)
                 print("Предложение отменено.")
             elif choice == "6":
                 sorted_proposals = sort_proposals_by_amount(
@@ -178,7 +194,7 @@ def main() -> None:
             elif choice == "8":
                 show_statistics(proposals)
             elif choice == "0":
-                save_data(clients, proposals)
+                save_data(clients, managers, proposals)
                 print("Данные сохранены. Работа завершена.")
                 break
             else:
