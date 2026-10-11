@@ -2,6 +2,9 @@
 .venv/
 venv/
 
+# База служебных таблиц Django
+db.sqlite3
+
 # Служебные файлы Python
 __pycache__/
 *.pyc

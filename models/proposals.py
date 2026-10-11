@@ -133,6 +133,17 @@ def add_proposal(
     return proposal
 
 
+def find_proposal_by_id(
+    proposals: list[Proposal],
+    proposal_id: int,
+) -> Proposal | None:
+    """Найти предложение по идентификатору."""
+    for proposal in proposals:
+        if proposal.id == proposal_id:
+            return proposal
+    return None
+
+
 def find_proposals(
     proposals: list[Proposal],
     query: str,
