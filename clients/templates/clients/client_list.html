@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Клиенты{% endblock %}
+
+{% block content %}
+<h1 class="mb-3">Клиенты</h1>
+<p>Всего клиентов: {{ clients|length }}</p>
+{% for client in clients %}
+    {% include "clients/includes/client_card.html" %}
+{% empty %}
+    <p>Клиенты не найдены.</p>
+{% endfor %}
+{% endblock %}

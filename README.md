@@ -1,8 +1,8 @@
 # Система учёта коммерческих предложений
 
 Консольное приложение для создания и хранения коммерческих предложений.
-В ПР5 к нему добавлен веб-интерфейс на Django: страницы только показывают
-данные, без форм создания и редактирования.
+Веб-интерфейс на Django показывает те же данные. HTML страниц лежит в
+шаблонах, а не в Python. Форм создания и редактирования на сайте нет.
 
 ## Назначение
 
@@ -22,8 +22,10 @@
 
 - Python 3;
 - Django 5.2 — веб-фреймворк;
+- Django Template Language — шаблоны страниц;
 - HTML — разметка страниц;
-- Bootstrap 5.3 — оформление страниц;
+- CSS и JavaScript — свои стили и скрипт года в подвале;
+- Bootstrap 5.3 — карточки и кнопки;
 - pytest — автоматические тесты;
 - flake8 — проверка качества кода.
 
@@ -134,12 +136,39 @@ Proposal
 - `/proposals/` — список предложений из `data/proposals.json`, view-функция `proposals()`;
 - `/proposals/<int:proposal_id>/` — карточка предложения, view-функция `proposal_detail()`.
 
-Если клиент или предложение с указанным id не найдены, страница возвращает
-код 404. Если адрес не совпал ни с одним маршрутом, срабатывает
-`page_not_found()`. Своя страница 404 видна при `DEBUG = False`.
+View-функция загружает данные из JSON и вызывает `render()`. HTML она не
+собирает. В шаблон уходит словарь контекста: `clients`, `client`,
+`proposals` или `proposal`.
 
-Общий каркас HTML собирает функция `page()`: кодировка, заголовок, Bootstrap
-и меню. Остальные view-функции передают в неё только содержимое страницы.
+Если клиент или предложение с указанным id не найдены, шаблон показывает
+текст «не найден», а view-функция возвращает код 404. Если адрес не совпал
+ни с одним маршрутом, срабатывает `page_not_found()`. Своя страница 404
+видна при `DEBUG = False`.
+
+## Шаблоны
+
+Общий каркас — `templates/base.html`. В нём подключены Bootstrap, свой CSS,
+логотип и скрипт. Меню подключено через `{% include %}`. Страницы приложений
+начинаются с `{% extends "base.html" %}` и заполняют блоки `title` и
+`content`.
+
+Ссылки в шаблонах строятся по имени маршрута, например
+`{% url 'clients:detail' client.id %}`. Имя приложения задаёт `app_name`
+в `urls.py` этого приложения.
+
+На списках используются цикл `{% for %}`, ветка `{% empty %}` и фильтр
+`length`. Если у клиента нет названия, фильтр `default` подставляет текст
+«Без названия». Дата предложения выводится фильтром `date`.
+
+Статус предложения выбирается в
+`proposals/includes/proposal_status.html`: «Отменено», «Согласовано» или
+«Ожидает согласования».
+
+Статические файлы лежат в `homepage/static/homepage/`:
+
+- `css/style.css` — шапка, карточки и статус;
+- `img/logo.png` — логотип;
+- `js/main.js` — подставляет текущий год в подвал.
 
 ## Основные операции
 
@@ -194,6 +223,11 @@ framework/
 ├── main.py
 ├── storage.py
 ├── utils.py
+├── templates/
+│   ├── base.html
+│   ├── 404.html
+│   └── includes/
+│       └── navigation.html
 ├── offers/
 │   ├── __init__.py
 │   ├── settings.py
@@ -202,13 +236,21 @@ framework/
 │   └── wsgi.py
 ├── homepage/
 │   ├── urls.py
-│   └── views.py
+│   ├── views.py
+│   ├── static/homepage/
+│   │   ├── css/style.css
+│   │   ├── js/main.js
+│   │   └── img/logo.png
+│   └── templates/homepage/
+│       └── index.html
 ├── clients/
 │   ├── urls.py
-│   └── views.py
+│   ├── views.py
+│   └── templates/clients/
 ├── proposals/
 │   ├── urls.py
-│   └── views.py
+│   ├── views.py
+│   └── templates/proposals/
 ├── models/
 │   ├── __init__.py
 │   ├── clients.py
@@ -239,30 +281,38 @@ Django будут в следующих работах. Классы предм�
 
 Настройки Django-проекта:
 
-- `settings.py` — настройки, список приложений, язык и часовой пояс;
+- `settings.py` — настройки, список приложений, язык, часовой пояс и каталог `templates/`;
 - `urls.py` — маршруты верхнего уровня и обработчик 404;
 - `asgi.py`, `wsgi.py` — точки входа для сервера.
+
+### `templates/`
+
+Общие шаблоны проекта: `base.html`, страница 404 и меню `includes/navigation.html`.
 
 ### `homepage/`
 
 Главная страница:
 
-- `views.py` — функция `page()` и view-функции `index()`, `page_not_found()`;
-- `urls.py` — маршрут `/`.
+- `views.py` — `index()` и `page_not_found()`, обе вызывают `render()`;
+- `urls.py` — маршрут `/`, `app_name = "homepage"`;
+- `templates/homepage/index.html` — содержимое главной;
+- `static/homepage/` — CSS, JavaScript и логотип.
 
 ### `clients/`
 
 Страницы клиентов:
 
 - `views.py` — `clients()` и `client_detail()`;
-- `urls.py` — маршруты `/clients/` и `/clients/<id>/`.
+- `urls.py` — маршруты `/clients/` и `/clients/<id>/`, `app_name = "clients"`;
+- `templates/clients/` — список, карточка и страница одного клиента.
 
 ### `proposals/`
 
 Страницы предложений:
 
 - `views.py` — `proposals()` и `proposal_detail()`;
-- `urls.py` — маршруты `/proposals/` и `/proposals/<id>/`.
+- `urls.py` — маршруты `/proposals/` и `/proposals/<id>/`, `app_name = "proposals"`;
+- `templates/proposals/` — список, статус и страница одного предложения.
 
 Отдельное приложение для менеджеров не создавалось. Менеджер показывается
 на карточке предложения через `proposal.manager`.
@@ -344,20 +394,22 @@ python -m pip install -r requirements.txt
 
 ## Текущее состояние и план развития
 
-Сделано в ПР5:
+Сделано:
 
 - Django-проект `offers` и приложения `homepage`, `clients`, `proposals`;
-- маршруты в два уровня: корневой `urls.py` и `urls.py` приложений;
-- view-функции и HTML-страницы;
+- маршруты в два уровня и пространства имён `app_name`;
+- view-функции вызывают `render()` и передают контекст;
+- HTML вынесен в шаблоны: `base.html`, `{% extends %}`, `{% include %}`;
 - показ данных из JSON через классы ПР3;
-- меню и переходы между страницами;
-- оформление Bootstrap 5.3;
+- фильтры `length`, `default`, `date` и `floatformat`;
+- свои CSS, JavaScript и логотип;
 - своя страница для ошибки 404.
+
+Данные по-прежнему в JSON. Django ORM и формы не используются.
 
 Дальше планируется:
 
 - перенос сущностей в Django ORM и база данных;
-- шаблоны вместо функции `page()`;
 - формы создания и изменения предложений;
 - API;
 - контейнеризация;

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Предложения{% endblock %}
+
+{% block content %}
+<h1 class="mb-3">Предложения</h1>
+<p>Всего предложений: {{ proposals|length }}</p>
+{% for proposal in proposals %}
+    <article class="card proposal-card mb-3">
+        <div class="card-body d-flex flex-column flex-sm-row justify-content-between gap-2">
+            <div>
+                <h2 class="h5 card-title mb-1">
+                    <a href="{% url 'proposals:detail' proposal.id %}">{{ proposal.number }}</a>
+                </h2>
+                <p class="card-text mb-0">{{ proposal.client.name }}</p>
+            </div>
+            {% include "proposals/includes/proposal_status.html" %}
+        </div>
+    </article>
+{% empty %}
+    <p>Предложения не найдены.</p>
+{% endfor %}
+{% endblock %}

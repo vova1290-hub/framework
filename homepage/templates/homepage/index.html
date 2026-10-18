@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+<h1 class="mb-3">Коммерческие предложения</h1>
+<p>Учёт клиентов и коммерческих предложений.</p>
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card client-card h-100">
+            <div class="card-body">
+                <h2 class="h5 card-title">Клиенты</h2>
+                <p class="card-text">Список клиентов, для которых готовятся предложения.</p>
+                <a class="btn btn-primary" href="{% url 'clients:list' %}">Открыть</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card proposal-card h-100">
+            <div class="card-body">
+                <h2 class="h5 card-title">Предложения</h2>
+                <p class="card-text">Номера, суммы, сроки и статусы предложений.</p>
+                <a class="btn btn-primary" href="{% url 'proposals:list' %}">Открыть</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

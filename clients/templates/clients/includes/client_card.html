@@ -1,0 +1,8 @@
+<article class="card client-card mb-3">
+    <div class="card-body">
+        <h2 class="h5 card-title">{{ client.name|default:"Без названия" }}</h2>
+        <p class="card-text">ID: {{ client.id }}</p>
+        <p class="card-text">Сумма: {{ client.total_amount|floatformat:2 }}</p>
+        <a class="btn btn-primary" href="{% url 'clients:detail' client.id %}">Подробнее</a>
+    </div>
+</article>
