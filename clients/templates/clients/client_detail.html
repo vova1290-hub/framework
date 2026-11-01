@@ -8,7 +8,7 @@
         <div class="card-body">
             <h1 class="h3 card-title">{{ client.name|default:"Без названия" }}</h1>
             <p>ID: {{ client.id }}</p>
-            <p>Сумма: {{ total_amount|floatformat:2 }}</p>
+            <p>Сумма: {{ client.total_amount|floatformat:2 }}</p>
         </div>
     </article>
 {% else %}

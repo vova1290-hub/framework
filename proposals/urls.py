@@ -8,6 +8,12 @@ app_name = "proposals"
 
 urlpatterns = [
     path("", views.proposals, name="list"),
+    path("search/", views.proposal_search, name="search"),
+    path(
+        "statistics/",
+        views.proposal_statistics,
+        name="statistics",
+    ),
     path(
         "<int:proposal_id>/",
         views.proposal_detail,

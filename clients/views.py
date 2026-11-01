@@ -2,36 +2,26 @@
 
 from django.shortcuts import render
 
-from models.clients import find_client_by_id
-from storage import load_clients, load_managers, load_proposals
-
-
-def _proposal_list():
-    """Загрузить предложения вместе с клиентами и менеджерами."""
-    clients_list = load_clients("data/clients.json")
-    managers_list = load_managers("data/managers.json")
-    return load_proposals(
-        "data/proposals.json",
-        clients_list,
-        managers_list,
-    )
-
-
-def _client_sum(client, proposals_list):
-    """Посчитать сумму предложений одного клиента."""
-    total = 0
-    for proposal in proposals_list:
-        if proposal.client.id == client.id:
-            total += proposal.amount
-    return total
+from db.database import get_connection
 
 
 def clients(request):
-    """Показать список клиентов: код, название и сумма."""
-    clients_list = load_clients("data/clients.json")
-    proposals_list = _proposal_list()
-    for client in clients_list:
-        client.total_amount = _client_sum(client, proposals_list)
+    """Показать список клиентов из базы SQLite."""
+    connection = get_connection()
+    clients_list = connection.execute(
+        """
+        SELECT
+            clients.id,
+            clients.name,
+            COALESCE(SUM(proposals.amount), 0) AS total_amount
+        FROM clients
+        LEFT JOIN proposals
+            ON proposals.client_id = clients.id
+        GROUP BY clients.id, clients.name
+        ORDER BY clients.id
+        """
+    ).fetchall()
+    connection.close()
     context = {
         "clients": clients_list,
     }
@@ -40,14 +30,24 @@ def clients(request):
 
 def client_detail(request, client_id):
     """Показать клиента. Если его нет — ответ 404."""
-    clients_list = load_clients("data/clients.json")
-    client = find_client_by_id(clients_list, client_id)
-    total_amount = 0
-    if client is not None:
-        total_amount = _client_sum(client, _proposal_list())
+    connection = get_connection()
+    client = connection.execute(
+        """
+        SELECT
+            clients.id,
+            clients.name,
+            COALESCE(SUM(proposals.amount), 0) AS total_amount
+        FROM clients
+        LEFT JOIN proposals
+            ON proposals.client_id = clients.id
+        WHERE clients.id = ?
+        GROUP BY clients.id, clients.name
+        """,
+        [client_id],
+    ).fetchone()
+    connection.close()
     context = {
         "client": client,
-        "total_amount": total_amount,
     }
     if client is None:
         return render(

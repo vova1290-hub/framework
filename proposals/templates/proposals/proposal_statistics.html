@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Статистика{% endblock %}
+
+{% block content %}
+<h1 class="mb-3">Статистика</h1>
+<p>Число предложений у каждого клиента.</p>
+{% for client in clients %}
+    <article class="card client-card mb-3">
+        <div class="card-body">
+            <h2 class="h5 card-title">{{ client.client_name|default:"Без названия" }}</h2>
+            <p class="card-text mb-0">ID: {{ client.id }}</p>
+            <p class="card-text mb-0">Предложений: {{ client.proposals_count }}</p>
+        </div>
+    </article>
+{% empty %}
+    <p>Клиенты не найдены.</p>
+{% endfor %}
+{% endblock %}

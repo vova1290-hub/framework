@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Поиск{% endblock %}
+
+{% block content %}
+<h1 class="mb-3">Предложения на дату</h1>
+<p>Предложение находится, если выбранная дата лежит между датой создания и датой окончания.</p>
+<form method="get" class="mb-3">
+    <label class="form-label" for="date">Дата</label>
+    <input class="form-control mb-2" type="date" id="date" name="date" value="{{ selected_date }}">
+    <button class="btn btn-primary" type="submit">Найти</button>
+</form>
+{% if selected_date %}
+    <p>Найдено: {{ proposals|length }}</p>
+    {% for proposal in proposals %}
+        <article class="card proposal-card mb-3">
+            <div class="card-body">
+                <h2 class="h5 card-title mb-1">
+                    <a href="{% url 'proposals:detail' proposal.id %}">{{ proposal.number }}</a>
+                </h2>
+                <p class="card-text mb-0">{{ proposal.client_name }}</p>
+                <p class="card-text mb-0">Дата: {{ proposal.created_date }}</p>
+                <p class="card-text mb-0">Действует до: {{ proposal.expiration_date }}</p>
+                {% include "proposals/includes/proposal_status.html" %}
+            </div>
+        </article>
+    {% empty %}
+        <p>Предложения не найдены.</p>
+    {% endfor %}
+{% endif %}
+{% endblock %}

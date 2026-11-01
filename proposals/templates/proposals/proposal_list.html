@@ -5,6 +5,9 @@
 {% block content %}
 <h1 class="mb-3">Предложения</h1>
 <p>Всего предложений: {{ proposals|length }}</p>
+<p>
+    <a href="{% url 'proposals:search' %}">Найти на дату</a>
+</p>
 {% for proposal in proposals %}
     <article class="card proposal-card mb-3">
         <div class="card-body d-flex flex-column flex-sm-row justify-content-between gap-2">
@@ -12,7 +15,9 @@
                 <h2 class="h5 card-title mb-1">
                     <a href="{% url 'proposals:detail' proposal.id %}">{{ proposal.number }}</a>
                 </h2>
-                <p class="card-text mb-0">{{ proposal.client.name }}</p>
+                <p class="card-text mb-0">{{ proposal.client_name }}</p>
+                <p class="card-text mb-0">Дата: {{ proposal.created_date }}</p>
+                <p class="card-text mb-0">Действует до: {{ proposal.expiration_date }}</p>
             </div>
             {% include "proposals/includes/proposal_status.html" %}
         </div>

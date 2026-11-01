@@ -2,35 +2,137 @@
 
 from django.shortcuts import render
 
-from models.proposals import find_proposal_by_id
-from storage import load_clients, load_managers, load_proposals
+from db.database import get_connection
 
 
 def proposals(request):
-    """Показать список предложений из JSON."""
-    clients_list = load_clients("data/clients.json")
-    managers_list = load_managers("data/managers.json")
-    proposals_list = load_proposals(
-        "data/proposals.json",
-        clients_list,
-        managers_list,
-    )
+    """Показать все предложения из базы SQLite."""
+    connection = get_connection()
+    proposals_list = connection.execute(
+        """
+        SELECT
+            proposals.id,
+            proposals.number,
+            proposals.status,
+            strftime('%d.%m.%Y', proposals.created_date)
+                AS created_date,
+            strftime(
+                '%d.%m.%Y',
+                date(
+                    proposals.created_date,
+                    '+' || proposals.validity_days || ' days'
+                )
+            ) AS expiration_date,
+            clients.name AS client_name
+        FROM proposals
+        JOIN clients ON proposals.client_id = clients.id
+        ORDER BY proposals.id
+        """
+    ).fetchall()
+    connection.close()
     context = {
         "proposals": proposals_list,
     }
     return render(request, "proposals/proposal_list.html", context)
 
 
+def proposal_search(request):
+    """Найти предложения, которые действуют на выбранную дату."""
+    selected_date = request.GET.get("date", "")
+    proposals_list = []
+    if selected_date:
+        connection = get_connection()
+        proposals_list = connection.execute(
+            """
+            SELECT
+                proposals.id,
+                proposals.number,
+                proposals.status,
+                strftime('%d.%m.%Y', proposals.created_date)
+                    AS created_date,
+                strftime(
+                    '%d.%m.%Y',
+                    date(
+                        proposals.created_date,
+                        '+' || proposals.validity_days || ' days'
+                    )
+                ) AS expiration_date,
+                clients.name AS client_name
+            FROM proposals
+            JOIN clients ON proposals.client_id = clients.id
+            WHERE date(?) >= date(proposals.created_date)
+                AND date(?) <= date(
+                    proposals.created_date,
+                    '+' || proposals.validity_days || ' days'
+                )
+            ORDER BY proposals.id
+            """,
+            [selected_date, selected_date],
+        ).fetchall()
+        connection.close()
+    context = {
+        "proposals": proposals_list,
+        "selected_date": selected_date,
+    }
+    return render(request, "proposals/proposal_search.html", context)
+
+
+def proposal_statistics(request):
+    """Показать, сколько предложений у каждого клиента."""
+    connection = get_connection()
+    clients_list = connection.execute(
+        """
+        SELECT
+            clients.id,
+            clients.name AS client_name,
+            COUNT(proposals.id) AS proposals_count
+        FROM clients
+        LEFT JOIN proposals
+            ON proposals.client_id = clients.id
+        GROUP BY clients.id, clients.name
+        ORDER BY clients.id
+        """
+    ).fetchall()
+    connection.close()
+    context = {
+        "clients": clients_list,
+    }
+    return render(request, "proposals/proposal_statistics.html", context)
+
+
 def proposal_detail(request, proposal_id):
     """Показать одно предложение. Если его нет — ответ 404."""
-    clients_list = load_clients("data/clients.json")
-    managers_list = load_managers("data/managers.json")
-    proposals_list = load_proposals(
-        "data/proposals.json",
-        clients_list,
-        managers_list,
-    )
-    proposal = find_proposal_by_id(proposals_list, proposal_id)
+    connection = get_connection()
+    proposal = connection.execute(
+        """
+        SELECT
+            proposals.id,
+            proposals.number,
+            proposals.status,
+            ROUND(
+                proposals.amount
+                * (100 - proposals.discount_percent) / 100,
+                2
+            ) AS final_amount,
+            strftime('%d.%m.%Y', proposals.created_date)
+                AS created_date,
+            strftime(
+                '%d.%m.%Y',
+                date(
+                    proposals.created_date,
+                    '+' || proposals.validity_days || ' days'
+                )
+            ) AS expiration_date,
+            clients.name AS client_name,
+            managers.name AS manager_name
+        FROM proposals
+        JOIN clients ON proposals.client_id = clients.id
+        JOIN managers ON proposals.manager_id = managers.id
+        WHERE proposals.id = ?
+        """,
+        [proposal_id],
+    ).fetchone()
+    connection.close()
     context = {
         "proposal": proposal,
     }
