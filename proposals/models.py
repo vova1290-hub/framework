@@ -1,10 +1,57 @@
 """Модели менеджеров и коммерческих предложений."""
 
 from datetime import timedelta
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models.functions import Cast, Concat, Round
+from django.urls import reverse
+
+
+class ProposalQuerySet(models.QuerySet):
+    """Повторно используемые выборки предложений."""
+
+    def pending(self):
+        return self.filter(status=Proposal.Status.PENDING)
+
+    def approved(self):
+        return self.filter(status=Proposal.Status.APPROVED)
+
+    def cancelled(self):
+        return self.filter(status=Proposal.Status.CANCELLED)
+
+    def active(self):
+        return self.exclude(status=Proposal.Status.CANCELLED)
+
+    def with_expiration(self):
+        modifier = Concat(
+            models.Value("+"),
+            Cast("validity_days", models.CharField()),
+            models.Value(" days"),
+        )
+        expiration = models.Func(
+            models.F("created_date"), modifier,
+            function="DATE", output_field=models.DateField(),
+        )
+        return self.alias(expires=expiration)
+
+    def for_date(self, selected_date):
+        return self.with_expiration().filter(
+            created_date__lte=selected_date, expires__gte=selected_date,
+        )
+
+    def cards(self):
+        return self.with_expiration().annotate(
+            client_name=models.F("client__name"),
+            expiration_date=models.F("expires"),
+        ).values(
+            "id", "number", "client_name", "created_date",
+            "expiration_date", "status",
+        )
+
+    def with_parties(self):
+        return self.select_related("client", "manager")
 
 
 class Manager(models.Model):
@@ -24,9 +71,9 @@ class Proposal(models.Model):
     """Коммерческое предложение для клиента."""
 
     class Status(models.TextChoices):
-        PENDING = "Ожидает согласования", "Ожидает согласования"
-        APPROVED = "Согласовано", "Согласовано"
-        CANCELLED = "Отменено", "Отменено"
+        PENDING = "pending", "Ожидает согласования"
+        APPROVED = "approved", "Согласовано"
+        CANCELLED = "cancelled", "Отменено"
 
     number = models.CharField("Номер", max_length=50, unique=True)
     client = models.ForeignKey(
@@ -66,6 +113,18 @@ class Proposal(models.Model):
         default=Status.PENDING,
     )
 
+    final_amount = models.GeneratedField(
+        expression=Round(
+            models.F("amount") * (100 - models.F("discount_percent")) / 100.0,
+            precision=2,
+        ),
+        output_field=models.DecimalField(max_digits=14, decimal_places=2),
+        db_persist=True,
+        verbose_name="Итоговая сумма",
+    )
+
+    objects = ProposalQuerySet.as_manager()
+
     class Meta:
         verbose_name = "предложение"
         verbose_name_plural = "предложения"
@@ -87,17 +146,14 @@ class Proposal(models.Model):
             ),
             models.CheckConstraint(
                 condition=models.Q(status__in=[
-                    "Ожидает согласования", "Согласовано", "Отменено",
+                    "pending", "approved", "cancelled",
                 ]),
                 name="proposal_valid_status",
             ),
         ]
 
-    @property
-    def final_amount(self):
-        """Рассчитать сумму с учётом скидки."""
-        amount = self.amount * (100 - self.discount_percent) / 100
-        return amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    def get_absolute_url(self):
+        return reverse("proposals:detail", args=[self.pk])
 
     @property
     def expiration_date(self):

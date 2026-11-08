@@ -4,6 +4,12 @@
 
 {% block content %}
 <h1 class="mb-3">Статистика</h1>
+<h2 class="h5">Количество по статусам</h2>
+<ul>
+    <li>Ожидают согласования: {{ status_counts.pending }}</li>
+    <li>Согласованы: {{ status_counts.approved }}</li>
+    <li>Отменены: {{ status_counts.cancelled }}</li>
+</ul>
 <h2 class="h5">Предложения без отменённых</h2>
 <ul>
     <li>Количество: {{ summary.count }}</li>

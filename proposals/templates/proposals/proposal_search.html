@@ -4,7 +4,7 @@
 
 {% block content %}
 <h1 class="mb-3">Предложения на дату</h1>
-<p>Предложение находится, если выбранная дата лежит между датой создания и датой окончания.</p>
+<p>Поиск показывает предложения, которые действуют на выбранную дату. Отменённые предложения исключаются.</p>
 <form method="get" class="mb-3">
     <label class="form-label" for="date">Дата</label>
     <input class="form-control mb-2" type="date" id="date" name="date" value="{{ selected_date }}">

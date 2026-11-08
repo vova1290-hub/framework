@@ -42,6 +42,12 @@ class Command(BaseCommand):
                     for row in connection.execute(f"SELECT * FROM {table}"):
                         data = dict(row)
                         pk = data.pop("id")
+                        if model is Proposal:
+                            old_status = data["status"]
+                            data["status"] = {
+                                label: value
+                                for value, label in Proposal.Status.choices
+                            }.get(old_status, old_status)
                         _, created = model.objects.get_or_create(
                             pk=pk,
                             defaults=data,

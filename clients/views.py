@@ -17,10 +17,11 @@ def clients(request):
     return render(request, "clients/client_list.html", context)
 
 
-def client_detail(request, client_id):
+def client_detail(request, client_id=None, slug=None):
     """Показать клиента. Если его нет — ответ 404."""
     try:
-        client = Client.objects.get(pk=client_id)
+        lookup = {"slug": slug} if slug is not None else {"pk": client_id}
+        client = Client.objects.get(**lookup)
     except Client.DoesNotExist:
         return render(request, "clients/client_detail.html", status=404)
 

@@ -1,6 +1,6 @@
-{% if proposal.status == "Отменено" %}
+{% if proposal.status == proposal_status.CANCELLED %}
 <span class="badge text-bg-secondary proposal-status align-self-start">Отменено</span>
-{% elif proposal.status == "Согласовано" %}
+{% elif proposal.status == proposal_status.APPROVED %}
 <span class="badge text-bg-success proposal-status align-self-start">Согласовано</span>
 {% else %}
 <span class="badge text-bg-warning proposal-status align-self-start">Ожидает согласования</span>
