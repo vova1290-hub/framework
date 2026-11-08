@@ -4,11 +4,21 @@
 
 {% block content %}
 <h1 class="mb-3">Статистика</h1>
-<p>Число предложений у каждого клиента.</p>
+<h2 class="h5">Предложения без отменённых</h2>
+<ul>
+    <li>Количество: {{ summary.count }}</li>
+    <li>Общая сумма: {{ summary.total|floatformat:2 }}</li>
+    {% if summary.count %}
+        <li>Средняя сумма: {{ summary.average|floatformat:2 }}</li>
+        <li>Минимальная сумма: {{ summary.minimum|floatformat:2 }}</li>
+        <li>Максимальная сумма: {{ summary.maximum|floatformat:2 }}</li>
+    {% endif %}
+</ul>
+<h2 class="h5">Число предложений у каждого клиента</h2>
 {% for client in clients %}
     <article class="card client-card mb-3">
         <div class="card-body">
-            <h2 class="h5 card-title">{{ client.client_name|default:"Без названия" }}</h2>
+            <h2 class="h5 card-title">{{ client.name|default:"Без названия" }}</h2>
             <p class="card-text mb-0">ID: {{ client.id }}</p>
             <p class="card-text mb-0">Предложений: {{ client.proposals_count }}</p>
         </div>

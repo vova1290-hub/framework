@@ -1,0 +1,60 @@
+{% for error in errors %}
+    <p class="alert alert-warning">{{ error }}</p>
+{% endfor %}
+<form method="get" class="row g-2 mb-3">
+    <div class="col-sm-6">
+        <label class="form-label" for="number">Номер предложения</label>
+        <input class="form-control" id="number" name="number" value="{{ number }}">
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label" for="q">Поиск по номеру, клиенту или менеджеру</label>
+        <input class="form-control" id="q" name="q" value="{{ query }}">
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label" for="client">Клиент</label>
+        <select class="form-select" id="client" name="client">
+            <option value="">Все клиенты</option>
+            {% for name in client_names %}
+                <option value="{{ name }}"{% if client_name == name %} selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label" for="manager">Менеджер</label>
+        <select class="form-select" id="manager" name="manager">
+            <option value="">Все менеджеры</option>
+            {% for name in manager_names %}
+                <option value="{{ name }}"{% if manager_name == name %} selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-sm-4">
+        <label class="form-label" for="status">Статус</label>
+        <select class="form-select" id="status" name="status">
+            <option value="">Все статусы</option>
+            {% for value, label in statuses %}
+                <option value="{{ value }}"{% if status == value %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-sm-4">
+        <label class="form-label" for="date">Действует на дату</label>
+        <input class="form-control" type="date" id="date" name="date" value="{{ selected_date }}">
+    </div>
+    <div class="col-sm-4">
+        <label class="form-label" for="sort">Сортировка</label>
+        <select class="form-select" id="sort" name="sort">
+            {% for value, option in sort_options.items %}
+                <option value="{{ value }}"{% if sort == value %} selected{% endif %}>{{ option.0 }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-12 form-check ms-2">
+        <input class="form-check-input" type="checkbox" id="active" name="active" value="1"{% if hide_cancelled %} checked{% endif %}>
+        <label class="form-check-label" for="active">Скрыть отменённые</label>
+    </div>
+    <div class="col-12">
+        <button class="btn btn-primary" type="submit">Применить</button>
+        <a class="btn btn-outline-secondary" href="{% url 'proposals:list' %}">Сбросить</a>
+    </div>
+</form>

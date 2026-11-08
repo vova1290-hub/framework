@@ -1,27 +1,16 @@
 """Страницы клиентов."""
 
+from django.db.models import Sum
 from django.shortcuts import render
 
-from db.database import get_connection
+from .models import Client
 
 
 def clients(request):
-    """Показать список клиентов из базы SQLite."""
-    connection = get_connection()
-    clients_list = connection.execute(
-        """
-        SELECT
-            clients.id,
-            clients.name,
-            COALESCE(SUM(proposals.amount), 0) AS total_amount
-        FROM clients
-        LEFT JOIN proposals
-            ON proposals.client_id = clients.id
-        GROUP BY clients.id, clients.name
-        ORDER BY clients.id
-        """
-    ).fetchall()
-    connection.close()
+    """Показать список клиентов и сумму предложений каждого клиента."""
+    clients_list = Client.objects.annotate(
+        total_amount=Sum("proposals__amount", default=0),
+    ).order_by("id")
     context = {
         "clients": clients_list,
     }
@@ -30,30 +19,15 @@ def clients(request):
 
 def client_detail(request, client_id):
     """Показать клиента. Если его нет — ответ 404."""
-    connection = get_connection()
-    client = connection.execute(
-        """
-        SELECT
-            clients.id,
-            clients.name,
-            COALESCE(SUM(proposals.amount), 0) AS total_amount
-        FROM clients
-        LEFT JOIN proposals
-            ON proposals.client_id = clients.id
-        WHERE clients.id = ?
-        GROUP BY clients.id, clients.name
-        """,
-        [client_id],
-    ).fetchone()
-    connection.close()
+    try:
+        client = Client.objects.get(pk=client_id)
+    except Client.DoesNotExist:
+        return render(request, "clients/client_detail.html", status=404)
+
+    client.total_amount = client.proposals.aggregate(
+        total=Sum("amount", default=0),
+    )["total"]
     context = {
         "client": client,
     }
-    if client is None:
-        return render(
-            request,
-            "clients/client_detail.html",
-            context,
-            status=404,
-        )
     return render(request, "clients/client_detail.html", context)

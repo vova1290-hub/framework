@@ -10,7 +10,9 @@
     <input class="form-control mb-2" type="date" id="date" name="date" value="{{ selected_date }}">
     <button class="btn btn-primary" type="submit">Найти</button>
 </form>
-{% if selected_date %}
+{% if invalid_date %}
+    <p class="alert alert-warning">Введите корректную дату.</p>
+{% elif selected_date %}
     <p>Найдено: {{ proposals|length }}</p>
     {% for proposal in proposals %}
         <article class="card proposal-card mb-3">
@@ -19,8 +21,8 @@
                     <a href="{% url 'proposals:detail' proposal.id %}">{{ proposal.number }}</a>
                 </h2>
                 <p class="card-text mb-0">{{ proposal.client_name }}</p>
-                <p class="card-text mb-0">Дата: {{ proposal.created_date }}</p>
-                <p class="card-text mb-0">Действует до: {{ proposal.expiration_date }}</p>
+                <p class="card-text mb-0">Дата: {{ proposal.created_date|date:"d.m.Y" }}</p>
+                <p class="card-text mb-0">Действует до: {{ proposal.expiration_date|date:"d.m.Y" }}</p>
                 {% include "proposals/includes/proposal_status.html" %}
             </div>
         </article>
